@@ -48,7 +48,7 @@ df = pd.DataFrame(zip(non_voi+voi, labels), columns=['file', 'label'])
 train_df, val_df = train_test_split(df, test_size=0.2, shuffle=True)
 
 # Train Test split
-train_df, test_df = train_test_split(train_df, test_size=0.1, shuffle=True)
+# train_df, test_df = train_test_split(train_df, test_size=0.1, shuffle=True)
 
 # Augumentation
 video_transform = Compose([
@@ -155,7 +155,7 @@ class OurModel(LightningModule):
     # Test data                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
     def test_dataloader(self):
         dataset = labeled_video_dataset(
-            test_df, clip_sampler=make_clip_sampler('random', 2),
+            val_df, clip_sampler=make_clip_sampler('random', 2),
             transform=video_transform, decode_audio=False
         )
         loader = DataLoader(dataset, batch_size=self.batch_size, num_workers=self.numworker, pin_memory=True)
@@ -164,7 +164,7 @@ class OurModel(LightningModule):
     def test_step(self, batch, batch_idx):
         video, label = batch['video'], batch['label']
         out =  self.forward(video)
-        return {'loss': label.detach(), 'pred': out.detach()}
+        return {'label': label.detach(), 'pred': out.detach()}
 
     def test_epoch_end(self, outputs):
         label = torch.cat([x['label'] for x in outputs]).cpu().numpy()
@@ -190,13 +190,14 @@ trainer = Trainer(
     callbacks=[lr_monitor, checkpoint_callback]
 )
 
+# train custom model
 trainer.fit(model)
+
+# Save Custom Model
+torch.save(model.state_dict(), 'model.pt')
 
 # Validation
 print(trainer.validate(model))
+
 # Testing
 print(trainer.test(model))
-
-# TesnsorBoard
-# tensorboard --logdir lightning_logs
-
